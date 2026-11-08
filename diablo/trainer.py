@@ -5,6 +5,13 @@ import torch
 import torch.nn as nn
 from transformers import Trainer, TrainingArguments
 
+# Keys that make up a trainable adapter: DiaBlo blocks, LoRA factors, (legacy) scores.
+ADAPTER_KEY_MARKERS = ("block_A", "lora_", "score")
+
+
+def adapter_state_dict(state_dict):
+    return {k: v for k, v in state_dict.items() if any(m in k for m in ADAPTER_KEY_MARKERS)}
+
 
 class CustomTrainingArguments(TrainingArguments):
     """Extended TrainingArguments with adapter-specific options."""
@@ -15,7 +22,7 @@ class CustomTrainingArguments(TrainingArguments):
 
 
 class CustomTrainer(Trainer):
-    """Trainer that supports saving adapter-only checkpoints."""
+    """Trainer that supports saving and resuming from adapter-only checkpoints."""
 
     def create_optimizer(self):
         from torch.optim import AdamW
@@ -40,13 +47,25 @@ class CustomTrainer(Trainer):
             state_dict = self.model.state_dict()
 
         if self.args.save_adapter_only:
-            state_dict = {
-                k: v
-                for k, v in state_dict.items()
-                if ("block" in k or "score" in k)
-            }
+            state_dict = adapter_state_dict(state_dict)
             torch.save(state_dict, os.path.join(output_dir, "adapter.chkpt"))
         else:
             torch.save(state_dict, os.path.join(output_dir, "model.chkpt"))
 
         torch.save(self.args, os.path.join(output_dir, "training_args.chkpt"))
+
+    def _load_from_checkpoint(self, resume_from_checkpoint, model=None):
+        """Load our adapter.chkpt instead of HF's model.safetensors.
+
+        Optimizer, scheduler, RNG and trainer_state are restored by the stock
+        Trainer from the same checkpoint folder.
+        """
+        model = model if model is not None else self.model
+        path = os.path.join(resume_from_checkpoint, "adapter.chkpt")
+        if not os.path.exists(path):
+            path = os.path.join(resume_from_checkpoint, "model.chkpt")
+        sd = torch.load(path, map_location="cpu")
+        missing, unexpected = model.load_state_dict(sd, strict=False)
+        if unexpected:
+            raise RuntimeError(f"Unexpected keys when resuming: {unexpected[:5]}")
+        print(f"Resumed adapter weights from {path} ({len(sd)} tensors)")

@@ -37,7 +37,7 @@ uses GPTQ/MagR and Math10K, which aren't in the repo, so this is a related exper
 4. Run `notebooks/02_eval.ipynb`: the parity check once, then the full eval of R0 (base model) and the finished runs.
 5. Run `notebooks/03_results.ipynb` for the table, loss curves, accuracy-vs-params plot, McNemar tests and write-up template.
 
-Everything persistent lives in `MyDrive/diablo/` (datasets, results/<RUN_ID>, eval, hf_cache).
+Everything persistent lives in `MyDrive/diablo/` (datasets, results/<RUN_ID>, eval). The HF model cache is kept on local disk (`/content/hf_cache`), because Drive corrupts multi-GB safetensors files.
 
 ## Changes vs upstream (all backwards compatible for the original Llama scripts)
 - `diablo/common.py`: one shared `MODEL_MAP` (adds Qwen2.5-0.5B/1.5B, accepts raw HF ids) and `setup_pad_token`.

@@ -39,6 +39,49 @@ uses GPTQ/MagR and Math10K, which aren't in the repo, so this is a related exper
 
 Everything persistent lives in `MyDrive/diablo/` (datasets, results/<RUN_ID>, eval). The HF model cache is kept on local disk (`/content/hf_cache`), because Drive corrupts multi-GB safetensors files.
 
+## Running on the SZTE Deep Cluster (Slurm)
+Branch `deepcluster` adds `scripts/slurm/`, which wraps the same `train.py` / `evaluate_gsm8k.py` calls as the notebooks.
+Cluster rules that shape it: 20 GPU-hours per course account, 2 running jobs, 24 h per job, mostly 11–12 GB GPUs
+(see https://github.com/szegedai/deepcluster_onboarding).
+
+```bash
+# on deep21, once
+git clone -b deepcluster https://github.com/Mrazakos/DiaBlo.git ~/projects/DiaBlo && cd ~/projects/DiaBlo
+bash scripts/slurm/setup_env.sh           # conda env "diablo" (python 3.12, torch cu126)
+sbatch scripts/slurm/prep.sbatch          # CPU-only: model + data download, unit tests, tiny e2e
+sbatch scripts/slurm/smoke.sbatch         # ~10 GPU-min: memory probe, s/step, eval timing -> "SMOKE ..." lines
+# then the whole matrix, 2 jobs at a time (TIME / BS / GA from the smoke output)
+TIME=02:00:00 bash scripts/slurm/submit_all.sh
+```
+
+Each run is one job: train with `--resume`, then HF-generate eval. Re-running `submit_all.sh` skips finished runs and resumes the
+rest. All jobs are pinned to one GPU type (`rtx2080ti`). Everything persistent lives in `~/diablo/` with the same layout as on
+Drive (`datasets/`, `results/<RUN_ID>/`, `eval/<RUN_ID>_hf.jsonl`), so `notebooks/03_results.ipynb` works on a copy with `BACKEND = "hf"`.
+
+Run matrix on the cluster (shared settings as in the notebooks; R0 is the base model):
+
+| ID | Method | Setting | Trainable | LR | Seed | Claim tested |
+|---|---|---|---|---|---|---|
+| R1 | DiaBlo | N=64 | 13.42M | 5e-4 | 42 | C1, C2, C3 |
+| R2 | LoRA | r=16 | 12.39M | 2e-4 | 42 | C1 |
+| R3 | DiaBlo | N=32 | 26.84M | 5e-4 | 42 | C1, C2 |
+| R8 | LoRA | r=32 | 24.77M | 2e-4 | 42 | C1 |
+| R4 | DiaBlo | N=128 | 6.71M | 5e-4 | 42 | C2 |
+| R9 | DiaBlo | N=512 | 1.76M | 5e-4 | 42 | C2 |
+| R10 | DiaBlo | N=16 | 53.67M | 5e-4 | 42 | C2 |
+| R7 | DiaBlo | N=64 | 13.42M | 2e-4 | 42 | C3 |
+| R11 | DiaBlo | N=64 | 13.42M | 1e-4 | 42 | C3 |
+| R12 | DiaBlo | N=64 | 13.42M | 1e-3 | 42 | C3 |
+| R5a | DiaBlo | N=64 | 13.42M | 5e-4 | 1 | variance |
+| R5b | LoRA | r=16 | 12.39M | 2e-4 | 1 | variance |
+
+Compared with the Colab matrix, R9/R10 widen the N sweep and R11/R12 widen the LR sweep. The paper's N ablation (LLaMA3.2-3B,
+commonsense) differs by only 0.3 points between N=32, 64 and 128 and drops visibly only from N=512, while one GSM8k accuracy has
+about ±2.6 points of sampling noise (1319 questions), so three adjacent N values cannot test C2. R6 (LoRA at lr 5e-4) is dropped.
+
+At N=512, Qwen's `k_proj`/`v_proj` (256 outputs) get 1-wide output blocks and only the first 256 blocks reach the output. This is
+upstream `BlockLinear` behaviour when N exceeds the layer width, and it affects only those two modules.
+
 ## Changes vs upstream (all backwards compatible for the original Llama scripts)
 - `diablo/common.py`: one shared `MODEL_MAP` (adds Qwen2.5-0.5B/1.5B, accepts raw HF ids) and `setup_pad_token`.
   Upstream always added `<PAD>` and resized embeddings to `len(tokenizer)`, which **shrinks** Qwen's padded embedding matrix.
@@ -63,3 +106,7 @@ Not touched: commonsense/MetaMath/MATH scripts, which are out of scope here.
 Smaller model (Qwen2.5-1.5B), GSM8k-train instead of MetaMathQA, fp16 on T4 (the paper uses bf16), LoRA at a matched parameter count rather than
 r=64, a single seed by default (R5 adds a second), and repo-default hyperparameters (`scripts/train_gsm8k.sh`: lr 5e-4, effective batch 16,
 3 epochs, warmup 100, dropout 0.05, qkvud) with only a small LR check for both methods (R6, R7).
+
+The paper's only stated settings for fine-tuning on GSM8k-train (Table 20, Llama3-8B) are 2 epochs, batch 32, lr 4e-4, 20 warmup
+steps and all seven modules (q,k,v,o,gate,up,down). This study uses the released script's settings instead. The paper's LR-robustness
+figure (Fig. 5) is on Llama3-8B and has no LoRA comparison, and its N ablation is on commonsense reasoning, not GSM8k.

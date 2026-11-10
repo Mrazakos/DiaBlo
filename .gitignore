@@ -8,6 +8,7 @@ wandb/
 .claude/
 CLAUDE.md
 
+logs/
 _e2e_tmp/
 __pycache__/
 .pytest_cache/

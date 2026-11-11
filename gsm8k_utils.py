@@ -44,10 +44,23 @@ def is_correct(example, output: str) -> bool:
 
 
 def load_jsonl(path):
+    """Read a JSONL file, dropping a half-written trailing line left by a killed job
+    (e.g. Slurm time limit), and rewrite the file clean so appending is safe."""
     if not os.path.exists(path):
         return []
+    records, clean = [], True
     with open(path) as f:
-        return [json.loads(line) for line in f if line.strip()]
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                records.append(json.loads(line))
+            except ValueError:
+                clean = False
+    if not clean:
+        with open(path, "w") as f:
+            f.writelines(json.dumps(r) + "\n" for r in records)
+    return records
 
 
 def summarize(records, n_test: int, batch_size_for_parity: int = 16) -> dict:

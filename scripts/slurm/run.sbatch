@@ -5,7 +5,7 @@
 # If the job hits its time limit or fails, submit the same command again: it continues
 # from the last checkpoint (saved every 100 steps) or from the last evaluated batch.
 #
-# Environment overrides: BS / GA (batch size x accumulation, default 4 x 4), EVAL_BS (default 32).
+# Environment overrides: BS / GA (batch size x accumulation, default 2 x 8), EVAL_BS (default 32).
 #
 #SBATCH --job-name=diablo-run
 #SBATCH --account=dl_2026_fall
@@ -35,8 +35,9 @@ case "$RUN_ID" in
     R12) METHOD=diablo; SIZE=64;  LR=1e-3 ;;               # C3
     *)   echo "ERROR: unknown run id '$RUN_ID'" >&2; exit 2 ;;
 esac
-BS="${BS:-4}"
-GA="${GA:-4}"
+# Effective batch is always 16. Batch 4 does not fit the 10.6 GB RTX 2080 Ti (memory probe: OOM), batch 2 peaks at ~8.5 GB.
+BS="${BS:-2}"
+GA="${GA:-8}"
 EVAL_BS="${EVAL_BS:-32}"
 
 echo "Job ${SLURM_JOB_ID:-local} ($RUN_ID) started on $(hostname) at $(date)"

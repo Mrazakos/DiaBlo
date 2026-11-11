@@ -7,7 +7,7 @@
 #
 # Settings (environment variables):
 #   TIME   --time per job, HH:MM:SS (take it from the smoke test; default is run.sbatch's 03:00:00)
-#   BS GA  batch size x accumulation for ALL runs (default 4 x 4; use BS=2 GA=8 if the smoke test says so)
+#   BS GA  batch size x accumulation for ALL runs (default 2 x 8, see run.sbatch)
 #   GPU    GPU type (default rtx2080ti). Keep it the same for every run.
 set -eo pipefail
 

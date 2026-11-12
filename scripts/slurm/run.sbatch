@@ -5,7 +5,7 @@
 # If the job hits its time limit or fails, submit the same command again: it continues
 # from the last checkpoint (saved every 100 steps) or from the last evaluated batch.
 #
-# Environment overrides: BS / GA (batch size x accumulation, default 2 x 8), EVAL_BS (default 32).
+# Environment overrides: BS / GA (batch size x accumulation, default 2 x GA from runs.sh), EVAL_BS (default 32).
 #
 #SBATCH --job-name=diablo-run
 #SBATCH --account=dl_2026_fall
@@ -15,30 +15,15 @@
 #SBATCH --time=03:00:00
 #SBATCH --output=logs/%x-%j.out
 
-RUN_ID="${1:?usage: sbatch -J <ID> scripts/slurm/run.sbatch <ID>   (R0 R1 R2 R3 R4 R5a R5b R7 R8 R9 R10 R11 R12)}"
+RUN_ID="${1:?usage: sbatch -J <ID> scripts/slurm/run.sbatch <ID>   (ids: see scripts/slurm/runs.sh)}"
 
-# ── Run matrix (Qwen2.5-1.5B, GSM8k-train -> GSM8k-test). See REPRODUCTION.md. ──
-SEED=42
-case "$RUN_ID" in
-    R0)  METHOD=none ;;                                    # base model, eval only
-    R1)  METHOD=diablo; SIZE=64;  LR=5e-4 ;;               # C1, C2, C3 reference
-    R2)  METHOD=lora;   SIZE=16;  LR=2e-4 ;;               # C1: LoRA at ~13M params
-    R3)  METHOD=diablo; SIZE=32;  LR=5e-4 ;;               # C1, C2
-    R4)  METHOD=diablo; SIZE=128; LR=5e-4 ;;               # C2
-    R5a) METHOD=diablo; SIZE=64;  LR=5e-4; SEED=1 ;;       # variance of R1
-    R5b) METHOD=lora;   SIZE=16;  LR=2e-4; SEED=1 ;;       # variance of R2
-    R7)  METHOD=diablo; SIZE=64;  LR=2e-4 ;;               # C3
-    R8)  METHOD=lora;   SIZE=32;  LR=2e-4 ;;               # C1: LoRA at ~27M params
-    R9)  METHOD=diablo; SIZE=512; LR=5e-4 ;;               # C2: few parameters
-    R10) METHOD=diablo; SIZE=16;  LR=5e-4 ;;               # C2: many parameters
-    R11) METHOD=diablo; SIZE=64;  LR=1e-4 ;;               # C3
-    R12) METHOD=diablo; SIZE=64;  LR=1e-3 ;;               # C3
-    *)   echo "ERROR: unknown run id '$RUN_ID'" >&2; exit 2 ;;
-esac
-# Effective batch is always 16. Batch 4 does not fit the 10.6 GB RTX 2080 Ti (memory probe: OOM), batch 2 peaks at ~8.5 GB.
-BS="${BS:-2}"
-GA="${GA:-8}"
+# Run table lives in runs.sh (shared with submit_all.sh). It decides MODEL, so load it before env.sh.
+source scripts/slurm/runs.sh
+load_run "$RUN_ID" || exit 2
+export MODEL
+BS="$RUN_BS"; GA="$RUN_GA"
 EVAL_BS="${EVAL_BS:-32}"
+QUANT=(); [ "$LOAD4" = 1 ] && QUANT=(--load_in_4bit)
 
 echo "Job ${SLURM_JOB_ID:-local} ($RUN_ID) started on $(hostname) at $(date)"
 echo "GPUs visible to this job: ${CUDA_VISIBLE_DEVICES:-none}"
@@ -65,8 +50,8 @@ else
         python - <<EOF
 import json, sys
 have = json.load(open("$RUN_DIR/run_config.json"))
-want = dict(method="$METHOD", lr=float("$LR"), seed=$SEED,
-            per_device_batch_size=$BS, gradient_accumulation_steps=$GA)
+want = dict(method="$METHOD", lr=float("$LR"), seed=$SEED, max_epochs=$EPOCHS, warmup_steps=$WARMUP,
+            target_modules="$MODULES", per_device_batch_size=$BS, gradient_accumulation_steps=$GA)
 bad = {k: f"started with {have.get(k)!r}, now {v!r}" for k, v in want.items() if have.get(k) != v}
 if bad:
     sys.exit(f"ERROR: $RUN_ID was started with different settings: {bad}. "

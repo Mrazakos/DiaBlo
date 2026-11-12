@@ -82,6 +82,23 @@ about ±2.6 points of sampling noise (1319 questions), so three adjacent N value
 At N=512, Qwen's `k_proj`/`v_proj` (256 outputs) get 1-wide output blocks and only the first 256 blocks reach the output. This is
 upstream `BlockLinear` behaviour when N exceeds the layer width, and it affects only those two modules.
 
+### Second wave: closer to the paper (run table in `scripts/slurm/runs.sh`)
+The first wave's fine-tuned runs all scored below the base model, probably because Qwen2.5-1.5B is already strong at GSM8k
+(see `RESULTS.md`). Two follow-ups:
+
+| Group | Runs | What changes |
+|---|---|---|
+| `paper` | P1 (DiaBlo N=64), P2 (LoRA r=16) | Paper Table 20 recipe on Qwen2.5-1.5B: 2 epochs, effective batch 32, DiaBlo lr 4e-4, warmup 20, all seven modules. LoRA keeps lr 2e-4 (no LoRA lr is given for this setup) |
+| `paper` | S0 (base), S1, S2 | Same recipe on Qwen2.5-0.5B, a weaker base. Results go to `~/diablo/{results,eval}-Qwen2.5-0.5B/` |
+| `llama` | L0-L2 (Llama-3.2-3B), H1/H2 (Llama3-8B) | Paper's model family, 4-bit NF4 base. Needs more GPU hours than the course budget, gated HF access (`HF_TOKEN`), probably `GPU=a5000` and a larger `--mem`, and a memory probe for BS/GA first |
+
+```bash
+TIME=02:00:00 bash scripts/slurm/submit_all.sh paper     # P1 P2 S0 S1 S2, 2 jobs at a time
+MODEL=Qwen2.5-0.5B sbatch scripts/slurm/prep.sbatch      # once, before the S runs: model + tokenized data
+```
+
+Budget order if hours are short: finish R12/R5b, then P1/P2, then S0 (base check, ~0.2 GPU-h) and S1/S2 only if S0 is well below the 1.5B base.
+
 ## Changes vs upstream (all backwards compatible for the original Llama scripts)
 - `diablo/common.py`: one shared `MODEL_MAP` (adds Qwen2.5-0.5B/1.5B, accepts raw HF ids) and `setup_pad_token`.
   Upstream always added `<PAD>` and resized embeddings to `len(tokenizer)`, which **shrinks** Qwen's padded embedding matrix.

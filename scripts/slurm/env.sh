@@ -8,13 +8,26 @@ source /shared/anaconda/anaconda/bin/activate
 conda activate "$CONDA_ENV"
 
 export MODEL="${MODEL:-Qwen2.5-1.5B}"            # short name in diablo/common.py MODEL_MAP
-export HF_ID="${HF_ID:-Qwen/Qwen2.5-1.5B}"
+case "$MODEL" in                                 # keep in sync with MODEL_MAP in diablo/common.py
+    Qwen2.5-0.5B) _HF=Qwen/Qwen2.5-0.5B ;;
+    Qwen2.5-1.5B) _HF=Qwen/Qwen2.5-1.5B ;;
+    Llama3-3B)    _HF=meta-llama/Llama-3.2-3B ;;      # gated: needs approved HF access + HF_TOKEN
+    Llama3-8B)    _HF=meta-llama/Meta-Llama-3-8B ;;   # gated
+    *)            _HF="$MODEL" ;;
+esac
+export HF_ID="${HF_ID:-$_HF}"
 
 # Everything persistent lives here (same layout as MyDrive/diablo in the Colab notebooks).
 export WORK="${DIABLO_WORK:-$HOME/diablo}"
 export DATA="$WORK/datasets/$MODEL"              # tokenized data is tokenizer-specific
-export RESULTS="$WORK/results"
-export EVALS="$WORK/eval"
+# The first-wave Qwen2.5-1.5B runs keep the original flat folders; every other model gets its own.
+if [ "$MODEL" = "Qwen2.5-1.5B" ]; then
+    export RESULTS="$WORK/results"
+    export EVALS="$WORK/eval"
+else
+    export RESULTS="$WORK/results-$MODEL"
+    export EVALS="$WORK/eval-$MODEL"
+fi
 export HF_HOME="$WORK/hf_cache"
 
 export WANDB_MODE=disabled

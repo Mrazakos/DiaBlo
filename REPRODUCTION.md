@@ -1,7 +1,7 @@
 # Reproducing DiaBlo on a free Colab T4
 
 Paper: *DiaBlo: Diagonal Blocks Are Sufficient For Finetuning* (arXiv:2506.03230, ICLR 2026).
-Upstream code: https://github.com/ziyangjoy/DiaBlo @ `83ffb6c`. This branch: `colab-repro`.
+Upstream code: https://github.com/ziyangjoy/DiaBlo @ `83ffb6c`. This branch: `paper-repro` (the earlier `colab-repro` and `deepcluster` branches were merged into it and deleted).
 
 ## What is being reproduced
 The paper's full experiments (Llama2/3 7–8B, MetaMathQA 395k × 2048 tokens, Commonsense-170k) are far beyond a free T4.
@@ -40,13 +40,13 @@ uses GPTQ/MagR and Math10K, which aren't in the repo, so this is a related exper
 Everything persistent lives in `MyDrive/diablo/` (datasets, results/<RUN_ID>, eval). The HF model cache is kept on local disk (`/content/hf_cache`), because Drive corrupts multi-GB safetensors files.
 
 ## Running on the SZTE Deep Cluster (Slurm)
-Branch `deepcluster` adds `scripts/slurm/`, which wraps the same `train.py` / `evaluate_gsm8k.py` calls as the notebooks.
+`scripts/slurm/`, which wraps the same `train.py` / `evaluate_gsm8k.py` calls as the notebooks.
 Cluster rules that shape it: 20 GPU-hours per course account, 2 running jobs, 24 h per job, mostly 11–12 GB GPUs
 (see https://github.com/szegedai/deepcluster_onboarding).
 
 ```bash
 # on deep21, once
-git clone -b deepcluster https://github.com/Mrazakos/DiaBlo.git ~/projects/DiaBlo && cd ~/projects/DiaBlo
+git clone -b paper-repro https://github.com/Mrazakos/DiaBlo.git ~/projects/DiaBlo && cd ~/projects/DiaBlo
 bash scripts/slurm/setup_env.sh           # conda env "diablo" (python 3.12, torch cu126)
 sbatch scripts/slurm/prep.sbatch          # CPU-only: model + data download, unit tests, tiny e2e
 sbatch scripts/slurm/smoke.sbatch         # ~10 GPU-min: memory probe, s/step, eval timing -> "SMOKE ..." lines

@@ -29,7 +29,7 @@ GSM8K_ORDER=(G1 G0 G2 G3 G4 G5 G6 G7)
 CS_ORDER=(C3 C1 C4 C2)
 ABLATE_ORDER=(A64 A512 A1024 A256 A16)
 MM_ORDER=(M1 M2)
-OPTIONAL_ORDER=(AL32 A16 C5 M1r)
+OPTIONAL_ORDER=(AL32 AL32a AL32b A16 C5 M1r)
 MVR_ORDER=(G1 A64 A512 A1024)
 ALL_PAPER=("${GSM8K_ORDER[@]}" "${CS_ORDER[@]}" "${ABLATE_ORDER[@]}" "${MM_ORDER[@]}" "${OPTIONAL_ORDER[@]}")
 
@@ -98,7 +98,7 @@ load_run() {
 
         # ── Paper Table 10: N ablation on Llama3.2-3B, commonsense. The table's parameter counts match q k v up down
         #    (e.g. N=64 -> 27.56 Mi), i.e. the Table 12 FP16 recipe; its LR is not given, so one LR for every N.
-        A16|A64|A256|A512|A1024|AL32)
+        A16|A64|A256|A512|A1024|AL32|AL32a|AL32b)
             MODEL=Llama3.2-3B; TASK=commonsense_new; METHOD=diablo; SIZE="${id#A}"; LR=1e-4; EPOCHS=3; WARMUP=100
             MODULES=qkvud; EFF=16; MAXLEN=256; PREC=fp16; GPU=rtx2080ti; MEM=16G; SAVE_STEPS=200
             EVAL=commonsense; SEGMENTS=3
@@ -110,6 +110,10 @@ load_run() {
                 A1024) PAPER="Table 10 N=1024: avg 81.60"; PAPER_NUM=81.60 ;;
                 # Same-pipeline LoRA baseline (~33M params vs 28.9M for N=64). lr 3e-4 = LLM-Adapters' LoRA default.
                 AL32) METHOD=lora; SIZE=32; LR=3e-4; PAPER="no paper number (LoRA baseline for DiaBlo N=64)" ;;
+                # AL32 underfit (final train loss ~0.05 vs ~0.002 for A64; avg 61.54), so LR follow-ups:
+                # AL32a uses DiaBlo's own LR, AL32b sits between.
+                AL32a) METHOD=lora; SIZE=32; LR=1e-4; PAPER="no paper number (LoRA r=32 baseline, lr 1e-4)" ;;
+                AL32b) METHOD=lora; SIZE=32; LR=2e-4; PAPER="no paper number (LoRA r=32 baseline, lr 2e-4)" ;;
             esac ;;
 
         # ── Paper Table 2 with Table 14 hyper-parameters: Llama2-7B on MetaMathQA (395k), lr 2e-4, 3 epochs, batch 16,

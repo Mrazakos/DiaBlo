@@ -94,7 +94,7 @@ print(f"# DiaBlo paper-scale reproduction: results so far\n\n(source: `{args.wor
 
 print("\n### Minimum viable reproduction: our number vs the paper's\n")
 print("| Run | Experiment | Ours | Paper | Ours - paper | Status |\n|---|---|---|---|---|---|")
-for rid in ["G1", "A64", "A512", "A1024", "A16", "AL32"]:
+for rid in ["G1", "C3", "A64", "A512", "A1024", "A16", "AL32", "AL32a", "AL32b"]:
     r = RUNS[rid]
     st, s = status(rid)
     ours = 100 * (s["accuracy"] if r["eval"] == "gsm8k_lori" else s["average"]) if s else None
@@ -104,7 +104,7 @@ for rid in ["G1", "A64", "A512", "A1024", "A16", "AL32"]:
           f"{f'{ours - paper:+.2f}' if ours is not None and paper else '-'} | {st} |")
 table("Table 5 / Fig. 5: Llama3-8B fine-tuned on GSM8K (greedy, 1319 questions)", ["G0", "G1", "G2", "G3", "G4", "G5", "G6", "G7"], "gsm8k")
 table("Table 1 (FP16): Commonsense-170k, 8 benchmarks (beam 4)", ["C1", "C2", "C5", "C3", "C4"], "commonsense")
-table("Table 10: N ablation, Llama3.2-3B, commonsense", ["A16", "A64", "A256", "A512", "A1024", "AL32"], "commonsense")
+table("Table 10: N ablation, Llama3.2-3B, commonsense", ["A16", "A64", "A256", "A512", "A1024", "AL32", "AL32a", "AL32b"], "commonsense")
 table("Table 2: Llama2-7B on MetaMathQA (beam 4)", ["M1", "M2", "M1r"], "math")
 
 bench = sorted(glob.glob(f"{args.work}/bench/*.json"))

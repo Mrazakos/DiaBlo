@@ -1,10 +1,14 @@
-# Reproducing DiaBlo on a free Colab T4
+# Reproducing DiaBlo
 
 Paper: *DiaBlo: Diagonal Blocks Are Sufficient For Finetuning* (arXiv:2506.03230, ICLR 2026).
-Upstream code: https://github.com/ziyangjoy/DiaBlo @ `83ffb6c`. This branch: `paper-repro` (the earlier `colab-repro` and `deepcluster` branches were merged into it and deleted).
+Upstream code: https://github.com/ziyangjoy/DiaBlo @ `83ffb6c`. This branch: `paper-repro`.
 
-## What is being reproduced
-The paper's full experiments (Llama2/3 7–8B, MetaMathQA 395k × 2048 tokens, Commonsense-170k) are far beyond a free T4.
+The paper-scale reproduction on the paper's own models is in
+[Paper-scale reproduction](#paper-scale-reproduction-branch-paper-repro-1000-gpu-hours); start there. The sections before it
+document the earlier small-scale study, which ran when only 20 GPU-hours were available.
+
+## Early small-scale study (Qwen2.5-1.5B, GSM8k)
+The paper's full experiments (Llama2/3 7–8B, MetaMathQA 395k × 2048 tokens, Commonsense-170k) did not fit the first budget.
 This study is a **method-level reproduction at 1.5B scale**: GSM8k-train → GSM8k-test on **Qwen2.5-1.5B**. It tests
 the paper's relative claims with matched baselines:
 
@@ -24,23 +28,8 @@ Trainable parameters on Qwen2.5-1.5B (q,k,v,up,down × 28 layers):
 | N=64 | 13.42M | r=16 | 12.39M |
 | N=128 | 6.71M | r=8 | 6.19M |
 
-The optional stretch (`notebooks/04_stretch_llama2_4bit.ipynb`) compares NF4 DiaBlo with QLoRA on Llama2-7B. The paper's quantized table
-uses GPTQ/MagR and Math10K, which aren't in the repo, so this is a related experiment rather than a reproduction of Table 4.
-
-## How to run
-1. Push this branch to your GitHub fork. Set `REPO_URL` in the first cell of each notebook. Alternatively, copy the repo folder to
-   `MyDrive/diablo/DiaBlo`.
-2. In Colab, open `notebooks/00_setup_smoketest.ipynb` on a T4 and run all cells. This runs the tests, tokenizes GSM8k, checks zero-init and
-   runs the fp16 smoke test with resume, and prints s/step → hours per run.
-3. Open `notebooks/01_train.ipynb`, set `RUN_ID`, and run all cells. Re-run after a disconnect and it resumes from Drive.
-   Priority: R1, R2, R3, R4, then R6/R7, then R8/R5.
-4. Run `notebooks/02_eval.ipynb`: the parity check once, then the full eval of R0 (base model) and the finished runs.
-5. Run `notebooks/03_results.ipynb` for the table, loss curves, accuracy-vs-params plot, McNemar tests and write-up template.
-
-Everything persistent lives in `MyDrive/diablo/` (datasets, results/<RUN_ID>, eval). The HF model cache is kept on local disk (`/content/hf_cache`), because Drive corrupts multi-GB safetensors files.
-
 ## Running on the SZTE Deep Cluster (Slurm)
-`scripts/slurm/`, which wraps the same `train.py` / `evaluate_gsm8k.py` calls as the notebooks.
+`scripts/slurm/` wraps `train.py` and the evaluation scripts in Slurm jobs.
 Cluster rules that shape it: 20 GPU-hours per course account, 2 running jobs, 24 h per job, mostly 11–12 GB GPUs
 (see https://github.com/szegedai/deepcluster_onboarding).
 
@@ -55,10 +44,10 @@ TIME=02:00:00 bash scripts/slurm/submit_all.sh
 ```
 
 Each run is one job: train with `--resume`, then HF-generate eval. Re-running `submit_all.sh` skips finished runs and resumes the
-rest. All jobs are pinned to one GPU type (`rtx2080ti`). Everything persistent lives in `~/diablo/` with the same layout as on
-Drive (`datasets/`, `results/<RUN_ID>/`, `eval/<RUN_ID>_hf.jsonl`), so `notebooks/03_results.ipynb` works on a copy with `BACKEND = "hf"`.
+rest. All jobs are pinned to one GPU type (`rtx2080ti`). Everything persistent lives in `~/diablo/`
+(`datasets/`, `results/<RUN_ID>/`, `eval/<RUN_ID>_hf.jsonl`).
 
-Run matrix on the cluster (shared settings as in the notebooks; R0 is the base model):
+Run matrix on the cluster (R0 is the base model):
 
 | ID | Method | Setting | Trainable | LR | Seed | Claim tested |
 |---|---|---|---|---|---|---|
@@ -75,7 +64,7 @@ Run matrix on the cluster (shared settings as in the notebooks; R0 is the base m
 | R5a | DiaBlo | N=64 | 13.42M | 5e-4 | 1 | variance |
 | R5b | LoRA | r=16 | 12.39M | 2e-4 | 1 | variance |
 
-Compared with the Colab matrix, R9/R10 widen the N sweep and R11/R12 widen the LR sweep. The paper's N ablation (LLaMA3.2-3B,
+Compared with the original Colab plan, R9/R10 widen the N sweep and R11/R12 widen the LR sweep. The paper's N ablation (LLaMA3.2-3B,
 commonsense) differs by only 0.3 points between N=32, 64 and 128 and drops visibly only from N=512, while one GSM8k accuracy has
 about ±2.6 points of sampling noise (1319 questions), so three adjacent N values cannot test C2. R6 (LoRA at lr 5e-4) is dropped.
 

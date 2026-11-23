@@ -18,7 +18,7 @@ case "$MODEL" in                                 # keep in sync with MODEL_MAP i
 esac
 export HF_ID="${HF_ID:-$_HF}"
 
-# Everything persistent lives here (same layout as MyDrive/diablo in the Colab notebooks).
+# Everything persistent lives here.
 export WORK="${DIABLO_WORK:-$HOME/diablo}"
 export DATA="$WORK/datasets/$MODEL"              # tokenized data is tokenizer-specific
 # The first-wave Qwen2.5-1.5B runs keep the original flat folders; every other model gets its own.

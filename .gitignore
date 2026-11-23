@@ -12,4 +12,3 @@ logs/
 _e2e_tmp/
 __pycache__/
 .pytest_cache/
-!notebooks/*.ipynb

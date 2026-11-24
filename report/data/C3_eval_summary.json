@@ -1,0 +1,68 @@
+{
+  "model": "meta-llama/Meta-Llama-3-8B",
+  "method": "diablo",
+  "adapter": "~/diablo/results-Llama3-8B/C3/adapter.chkpt",
+  "num_blocks": 64,
+  "prompt_style": "train",
+  "num_beams": 4,
+  "datasets": {
+    "boolq": {
+      "n": 3270,
+      "n_total": 3270,
+      "accuracy": 0.7584097859327217,
+      "seconds": 271.2,
+      "generated": 3270
+    },
+    "piqa": {
+      "n": 1838,
+      "n_total": 1838,
+      "accuracy": 0.8993471164309031,
+      "seconds": 462.9,
+      "generated": 1838
+    },
+    "social_i_qa": {
+      "n": 1954,
+      "n_total": 1954,
+      "accuracy": 0.8142272262026612,
+      "seconds": 266.8,
+      "generated": 1954
+    },
+    "hellaswag": {
+      "n": 10042,
+      "n_total": 10042,
+      "accuracy": 0.9561840270862378,
+      "seconds": 3262.0,
+      "generated": 10042
+    },
+    "winogrande": {
+      "n": 1267,
+      "n_total": 1267,
+      "accuracy": 0.8950276243093923,
+      "seconds": 153.5,
+      "generated": 1267
+    },
+    "ARC-Easy": {
+      "n": 2376,
+      "n_total": 2376,
+      "accuracy": 0.9335016835016835,
+      "seconds": 414.3,
+      "generated": 2376
+    },
+    "ARC-Challenge": {
+      "n": 1172,
+      "n_total": 1172,
+      "accuracy": 0.8353242320819113,
+      "seconds": 222.5,
+      "generated": 1172
+    },
+    "openbookqa": {
+      "n": 500,
+      "n_total": 500,
+      "accuracy": 0.88,
+      "seconds": 70.8,
+      "generated": 500
+    }
+  },
+  "average": 0.8715027119431888,
+  "complete": true
+}

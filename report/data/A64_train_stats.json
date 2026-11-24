@@ -1,0 +1,11 @@
+{
+  "steps_this_process": 31932,
+  "global_step": 31932,
+  "max_steps": 31932,
+  "steps_per_epoch": 10643,
+  "n_train": 170300,
+  "train_runtime_s": 55334.8095,
+  "peak_mem_gb": 9.87890625,
+  "gpu": "NVIDIA GeForce RTX 2080 Ti",
+  "s_per_step": 1.7328951991732433
+}

@@ -3,7 +3,7 @@
 Paper: *DiaBlo: Diagonal Blocks Are Sufficient For Finetuning* (arXiv:2506.03230, ICLR 2026).
 Upstream code: https://github.com/ziyangjoy/DiaBlo @ `83ffb6c`. This branch: `paper-repro`.
 
-The paper-scale reproduction on the paper's own models is in
+**Results and conclusions: [REPORT.md](REPORT.md).** The paper-scale reproduction on the paper's own models is in
 [Paper-scale reproduction](#paper-scale-reproduction-branch-paper-repro-1000-gpu-hours); start there. The sections before it
 document the earlier small-scale study, which ran when only 20 GPU-hours were available.
 

@@ -1,0 +1,11 @@
+{
+  "steps_this_process": 31932,
+  "global_step": 31932,
+  "max_steps": 31932,
+  "steps_per_epoch": 10643,
+  "n_train": 170300,
+  "train_runtime_s": 68616.3145,
+  "peak_mem_gb": 21.201171875,
+  "gpu": "NVIDIA RTX A5000",
+  "s_per_step": 2.148826083552549
+}

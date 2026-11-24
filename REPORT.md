@@ -191,6 +191,9 @@ of benchmarking). The account shows 129.2 h used in total, which includes the ea
 
 All raw outputs live on the cluster under `~/diablo/`. Copies of the summary files used here are in
 [`report/data/`](report/data/), and the auto-generated tables are in [`report/paper_results.md`](report/paper_results.md).
+Every model answer is in [`report/eval/<RUN>/<task>.jsonl`](report/eval/), one JSON line per test question
+(`idx`, `output` = generated text, `pred`, `answer`, `correct`): 22,419 lines per commonsense run. G1's
+`report/eval/G1/gsm8k.jsonl` has 1,319 lines with `idx`, `output` (prompt plus generated solution) and `correct`. These are handy for showing example answers on slides.
 
 | Numbers | Source |
 |---|---|
